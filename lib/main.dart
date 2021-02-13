@@ -55,37 +55,42 @@ class VirtualKeyboard extends StatefulWidget {
 }
 
 class VirtualKeyboardState extends State<VirtualKeyboard>
-    implements TextInputSource {
+    with TextInputControl {
   // The currently attached client.
   TextInputClient? _client;
   // The current text input state.
-  String _text = '';
-  TextSelection _selection = TextSelection.collapsed(offset: 0);
+  var _editingState = TextEditingValue();
 
   @override
   void initState() {
     super.initState();
-    // Set the virtual keyboard as the current text input source.
-    TextInput.setSource(this);
+    // Register the virtual keyboard as the current text input control.
+    TextInput.addInputControl(this);
+    TextInput.setCurrentInputControl(this);
   }
 
   @override
   void dispose() {
     super.dispose();
-    // Restore the default text input source.
-    TextInput.setSource(TextInput.defaultSource);
+    // Restore the original platform text input control.
+    TextInput.removeInputControl(this);
+    TextInput.setCurrentInputControl(PlatformTextInputControl.instance);
   }
 
   // Handle a virtual key button press.
   void _handleKeyPress(String key) {
     // Insert text, replacing the current selection if any.
-    _text = _text.replaceRange(_selection.start, _selection.end, key);
-    _selection = TextSelection.collapsed(offset: _selection.start + key.length);
+    var text = _editingState.text;
+    var selection = _editingState.selection;
+
+    final value = TextEditingValue(
+      text: text.replaceRange(selection.start, selection.end, key),
+      selection: TextSelection.collapsed(offset: selection.start + key.length),
+    );
+    setEditingState(value);
 
     // Request the attached client to update accordingly.
-    _client?.updateEditingValue(
-      TextEditingValue(text: _text, selection: _selection),
-    );
+    updateEditingValue(value);
   }
 
   @override
@@ -106,17 +111,8 @@ class VirtualKeyboardState extends State<VirtualKeyboard>
   }
 
   @override
-  TextInputConnection attach(TextInputClient client) {
+  void attach(TextInputClient client, TextInputConfiguration configuration) {
     setState(() => _client = client);
-
-    return VirtualKeyboardConnection(
-      client,
-      onEditingValueSet: (TextEditingValue value) {
-        // Keep track of the currently attached client's editing state changes.
-        _text = value.text;
-        _selection = value.selection;
-      },
-    );
   }
 
   @override
@@ -125,65 +121,8 @@ class VirtualKeyboardState extends State<VirtualKeyboard>
   }
 
   @override
-  void init() {}
-
-  @override
-  void cleanup() {}
-
-  @override
-  void finishAutofillContext({bool shouldSave = true}) {}
-}
-
-class VirtualKeyboardConnection extends TextInputConnection {
-  ValueChanged<TextEditingValue> _onEditingValueSet;
-
-  VirtualKeyboardConnection(
-    TextInputClient client, {
-    required ValueChanged<TextEditingValue> onEditingValueSet,
-  })   : _onEditingValueSet = onEditingValueSet,
-        super(client);
-
-  @override
   void setEditingState(TextEditingValue value) {
-    _onEditingValueSet(value);
+    // Keep track of the attached client's editing state changes.
+    _editingState = value;
   }
-
-  @override
-  void setClient(TextInputConfiguration configuration) {}
-
-  @override
-  void updateConfig(TextInputConfiguration configuration) {}
-
-  @override
-  void show() {}
-
-  @override
-  void hide() {}
-
-  @override
-  void clearClient() {}
-
-  @override
-  void setComposingRect(Rect rect) {}
-
-  @override
-  void setEditableSizeAndTransform(Size editableBoxSize, Matrix4 transform) {}
-
-  @override
-  void setStyle({
-    required String? fontFamily,
-    required double? fontSize,
-    required FontWeight? fontWeight,
-    required TextDirection textDirection,
-    required TextAlign textAlign,
-  }) {}
-
-  @override
-  void requestAutofill() {}
-
-  @override
-  void close() {}
-
-  @override
-  void connectionClosedReceived() {}
 }
