@@ -76,23 +76,23 @@ class VirtualKeyboardState extends State<VirtualKeyboard> {
 
   @override
   Widget build(BuildContext context) {
-    return FocusScope(
-      canRequestFocus: false,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (final key in ['A', 'B', 'C'])
-            ValueListenableBuilder<bool>(
-              valueListenable: _inputControl.attached,
-              builder: (_, attached, __) {
-                return ElevatedButton(
+    return ValueListenableBuilder<bool>(
+      valueListenable: _inputControl.attached,
+      builder: (_, attached, __) {
+        return FocusScope(
+          canRequestFocus: false,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final key in ['A', 'B', 'C'])
+                ElevatedButton(
                   child: Text(key),
                   onPressed: attached ? () => _handleKeyPress(key) : null,
-                );
-              },
-            ),
-        ],
-      ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
