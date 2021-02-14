@@ -54,43 +54,65 @@ class VirtualKeyboard extends StatefulWidget {
   VirtualKeyboardState createState() => VirtualKeyboardState();
 }
 
-class VirtualKeyboardState extends State<VirtualKeyboard>
-    with TextInputControl {
+class VirtualKeyboardControl extends TextInputControl {
+  final _attached = ValueNotifier<bool>(false);
   // The currently attached client.
   TextInputClient? _client;
   // The current text input state.
   var _editingState = TextEditingValue();
 
+  ValueNotifier<bool> get attached => _attached;
+  TextEditingValue get editingState => _editingState;
+
+  @override
+  void attach(TextInputClient client, TextInputConfiguration configuration) {
+    _attached.value = true;
+  }
+
+  @override
+  void detach(TextInputClient client) {
+    _attached.value = false;
+  }
+
+  @override
+  void setEditingState(TextEditingValue value) {
+    _editingState = value;
+  }
+
+  void processInput(String input) {
+    // Insert text, replacing the current selection if any.
+    var text = _editingState.text;
+    var selection = _editingState.selection;
+
+    final value = TextEditingValue(
+      text: text.replaceRange(selection.start, selection.end, input),
+      selection:
+          TextSelection.collapsed(offset: selection.start + input.length),
+    );
+
+    // Keep track of the attached client's editing state changes.
+    setEditingState(value);
+
+    // Request the attached client to update accordingly.
+    updateEditingValue(value);
+  }
+}
+
+class VirtualKeyboardState extends State<VirtualKeyboard> {
+  final _control = VirtualKeyboardControl();
+
   @override
   void initState() {
     super.initState();
     // Register the virtual keyboard as the current text input control.
-    TextInput.addInputControl(this);
-    TextInput.setCurrentInputControl(this);
+    TextInput.setInputControl(_control);
   }
 
   @override
   void dispose() {
     super.dispose();
     // Restore the original platform text input control.
-    TextInput.removeInputControl(this);
-    TextInput.setCurrentInputControl(PlatformTextInputControl.instance);
-  }
-
-  // Handle a virtual key button press.
-  void _handleKeyPress(String key) {
-    // Insert text, replacing the current selection if any.
-    var text = _editingState.text;
-    var selection = _editingState.selection;
-
-    final value = TextEditingValue(
-      text: text.replaceRange(selection.start, selection.end, key),
-      selection: TextSelection.collapsed(offset: selection.start + key.length),
-    );
-    setEditingState(value);
-
-    // Request the attached client to update accordingly.
-    updateEditingValue(value);
+    TextInput.restorePlatformInputControl();
   }
 
   @override
@@ -101,28 +123,17 @@ class VirtualKeyboardState extends State<VirtualKeyboard>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           for (final key in ['A', 'B', 'C'])
-            ElevatedButton(
-              child: Text(key),
-              onPressed: _client != null ? () => _handleKeyPress(key) : null,
+            ValueListenableBuilder<bool>(
+              valueListenable: _control.attached,
+              builder: (_, attached, __) {
+                return ElevatedButton(
+                  child: Text(key),
+                  onPressed: attached ? () => _control.processInput(key) : null,
+                );
+              },
             ),
         ],
       ),
     );
-  }
-
-  @override
-  void attach(TextInputClient client, TextInputConfiguration configuration) {
-    setState(() => _client = client);
-  }
-
-  @override
-  void detach(TextInputClient client) {
-    setState(() => _client = null);
-  }
-
-  @override
-  void setEditingState(TextEditingValue value) {
-    // Keep track of the attached client's editing state changes.
-    _editingState = value;
   }
 }
