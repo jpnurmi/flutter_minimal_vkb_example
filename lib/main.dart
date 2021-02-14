@@ -56,7 +56,7 @@ class VirtualKeyboard extends StatefulWidget {
 }
 
 class VirtualKeyboardState extends State<VirtualKeyboard> {
-  final _inputControl = VirtualKeyboardControl();
+  final _inputControl = CustomInputControl();
 
   @override
   void initState() {
@@ -71,7 +71,7 @@ class VirtualKeyboardState extends State<VirtualKeyboard> {
   }
 
   void _handleKeyPress(String key) {
-    _inputControl.processInput(key);
+    _inputControl.processUserInput(key);
   }
 
   @override

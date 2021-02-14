@@ -1,39 +1,43 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-class VirtualKeyboardControl extends TextInputControl {
+class CustomInputControl extends TextInputControl {
   var _editingState = TextEditingValue();
   final _attached = ValueNotifier<bool>(false);
+  final _visible = ValueNotifier<bool>(false);
 
-  ValueNotifier<bool> get attached => _attached;
+  /// The input control's attached state for updating the visual presentation.
+  ValueListenable<bool> get attached => _attached;
 
-  void register() {
-    // Register the virtual keyboard as the current text input control.
-    TextInput.setInputControl(this);
-  }
+  /// The input control's visibility state for updating the visual presentation.
+  ValueListenable<bool> get visible => _visible;
 
-  void unregister() {
-    // Restore the original platform text input control.
-    TextInput.restorePlatformInputControl();
-  }
+  /// Register the input control.
+  void register() => TextInput.setInputControl(this);
 
-  @override
-  void attach(TextInputClient client, TextInputConfiguration configuration) {
-    _attached.value = true;
-  }
+  /// Restore the original platform input control.
+  void unregister() => TextInput.restorePlatformInputControl();
 
   @override
-  void detach(TextInputClient client) {
-    _attached.value = false;
-  }
+  void attach(_, __) => _attached.value = true;
 
   @override
-  void setEditingState(TextEditingValue value) {
-    _editingState = value;
-  }
+  void detach(_) => _attached.value = false;
 
-  void processInput(String input) {
-    // Insert text, replacing the current selection if any.
+  @override
+  void show() => _visible.value = true;
+
+  @override
+  void hide() => _visible.value = false;
+
+  @override
+  void setEditingState(TextEditingValue value) => _editingState = value;
+
+  /// Process user input.
+  ///
+  /// Updates the internal editing state by inserting the input text,
+  /// and by replacing the current selection if any.
+  void processUserInput(String input) {
     _editingState = _editingState.copyWith(
       text: _insertText(input),
       selection: _replaceSelection(input),
