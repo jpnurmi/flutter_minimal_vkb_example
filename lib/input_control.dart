@@ -17,24 +17,6 @@ class VirtualKeyboardControl extends TextInputControl {
     TextInput.restorePlatformInputControl();
   }
 
-  void processInput(String input) {
-    // Insert text, replacing the current selection if any.
-    var text = _editingState.text;
-    var selection = _editingState.selection;
-
-    final value = TextEditingValue(
-      text: text.replaceRange(selection.start, selection.end, input),
-      selection:
-          TextSelection.collapsed(offset: selection.start + input.length),
-    );
-
-    // Keep track of the attached client's editing state changes.
-    setEditingState(value);
-
-    // Request the attached client to update accordingly.
-    updateEditingValue(value);
-  }
-
   @override
   void attach(TextInputClient client, TextInputConfiguration configuration) {
     _attached.value = true;
@@ -48,5 +30,27 @@ class VirtualKeyboardControl extends TextInputControl {
   @override
   void setEditingState(TextEditingValue value) {
     _editingState = value;
+  }
+
+  void processInput(String input) {
+    // Insert text, replacing the current selection if any.
+    _editingState = _editingState.copyWith(
+      text: _insertText(input),
+      selection: _replaceSelection(input),
+    );
+
+    // Request the attached client to update accordingly.
+    updateEditingValue(_editingState);
+  }
+
+  String _insertText(String input) {
+    final text = _editingState.text;
+    final selection = _editingState.selection;
+    return text.replaceRange(selection.start, selection.end, input);
+  }
+
+  TextSelection _replaceSelection(String input) {
+    final selection = _editingState.selection;
+    return TextSelection.collapsed(offset: selection.start + input.length);
   }
 }
