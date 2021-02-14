@@ -6,7 +6,6 @@ class VirtualKeyboardControl extends TextInputControl {
   final _attached = ValueNotifier<bool>(false);
 
   ValueNotifier<bool> get attached => _attached;
-  TextEditingValue get editingState => _editingState;
 
   void register() {
     // Register the virtual keyboard as the current text input control.
