@@ -1,62 +1,72 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import 'input_control.dart';
+void main() => runApp(const MyApp());
 
-void main() => runApp(ExampleApp());
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
-class ExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: HomePage(),
+    return const MaterialApp(
+      home: MyStatefulWidget(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  HomePage({Key? key}) : super(key: key);
+class MyStatefulWidget extends StatefulWidget {
+  const MyStatefulWidget({Key? key}) : super(key: key);
 
   @override
-  HomePageState createState() => HomePageState();
+  MyStatefulWidgetState createState() => MyStatefulWidgetState();
 }
 
-class HomePageState extends State<HomePage> {
-  final _controller = TextEditingController();
+class MyStatefulWidgetState extends State<MyStatefulWidget> {
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void dispose() {
     super.dispose();
     _controller.dispose();
+    _focusNode.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Minimal VKB'),
-      ),
-      body: TextField(
-        autofocus: true,
-        controller: _controller,
-        decoration: InputDecoration(
-          suffix: IconButton(
-            icon: Icon(Icons.clear),
-            onPressed: () => _controller.clear(),
+      body: Center(
+        child: TextField(
+          autofocus: true,
+          controller: _controller,
+          focusNode: _focusNode,
+          decoration: InputDecoration(
+            suffix: IconButton(
+              icon: const Icon(Icons.clear),
+              tooltip: 'Clear and unfocus',
+              onPressed: () {
+                _controller.clear();
+                _focusNode.unfocus();
+              },
+            ),
           ),
         ),
       ),
-      bottomSheet: VirtualKeyboard(),
+      bottomSheet: const MyVirtualKeyboard(),
     );
   }
 }
 
-class VirtualKeyboard extends StatefulWidget {
+class MyVirtualKeyboard extends StatefulWidget {
+  const MyVirtualKeyboard({Key? key}) : super(key: key);
+
   @override
-  VirtualKeyboardState createState() => VirtualKeyboardState();
+  MyVirtualKeyboardState createState() => MyVirtualKeyboardState();
 }
 
-class VirtualKeyboardState extends State<VirtualKeyboard> {
-  final _inputControl = CustomInputControl();
+class MyVirtualKeyboardState extends State<MyVirtualKeyboard> {
+  final MyTextInputControl _inputControl = MyTextInputControl();
 
   @override
   void initState() {
@@ -77,22 +87,73 @@ class VirtualKeyboardState extends State<VirtualKeyboard> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: _inputControl.attached,
-      builder: (_, attached, __) {
-        return FocusScope(
-          canRequestFocus: false,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (final key in ['A', 'B', 'C'])
-                ElevatedButton(
-                  child: Text(key),
-                  onPressed: attached ? () => _handleKeyPress(key) : null,
-                ),
-            ],
+      valueListenable: _inputControl.visible,
+      builder: (_, bool visible, __) {
+        return Visibility(
+          visible: visible,
+          child: FocusScope(
+            canRequestFocus: false,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                for (final String key in <String>['A', 'B', 'C'])
+                  ElevatedButton(
+                    child: Text(key),
+                    onPressed: () => _handleKeyPress(key),
+                  ),
+              ],
+            ),
           ),
         );
       },
     );
+  }
+}
+
+class MyTextInputControl extends TextInputControl {
+  TextEditingValue _editingState = const TextEditingValue();
+  final ValueNotifier<bool> _visible = ValueNotifier<bool>(false);
+
+  /// The input control's visibility state for updating the visual presentation.
+  ValueListenable<bool> get visible => _visible;
+
+  /// Register the input control.
+  void register() => TextInput.setInputControl(this);
+
+  /// Restore the original platform input control.
+  void unregister() => TextInput.restorePlatformInputControl();
+
+  @override
+  void show() => _visible.value = true;
+
+  @override
+  void hide() => _visible.value = false;
+
+  @override
+  void setEditingState(TextEditingValue value) => _editingState = value;
+
+  /// Process user input.
+  ///
+  /// Updates the internal editing state by inserting the input text,
+  /// and by replacing the current selection if any.
+  void processUserInput(String input) {
+    _editingState = _editingState.copyWith(
+      text: _insertText(input),
+      selection: _replaceSelection(input),
+    );
+
+    // Request the attached client to update accordingly.
+    updateEditingValue(_editingState);
+  }
+
+  String _insertText(String input) {
+    final String text = _editingState.text;
+    final TextSelection selection = _editingState.selection;
+    return text.replaceRange(selection.start, selection.end, input);
+  }
+
+  TextSelection _replaceSelection(String input) {
+    final TextSelection selection = _editingState.selection;
+    return TextSelection.collapsed(offset: selection.start + input.length);
   }
 }
