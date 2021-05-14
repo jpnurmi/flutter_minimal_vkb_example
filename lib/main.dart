@@ -143,7 +143,7 @@ class MyTextInputControl extends TextInputControl {
     );
 
     // Request the attached client to update accordingly.
-    updateEditingValue(_editingState);
+    TextInput.updateEditingValue(_editingState);
   }
 
   String _insertText(String input) {
