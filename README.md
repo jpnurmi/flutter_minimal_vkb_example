@@ -1,6 +1,6 @@
 # flutter_minimal_vkb_example
 
-A minimal virtual keyboard example for Flutter.
+A minimal virtual keyboard example for Flutter. [Web Demo](https://jpnurmi.dev/flutter_minimal_vkb_example/).
 
 | **NOTE:** Requires Flutter 3.7.0 or later. |
 | --- |
