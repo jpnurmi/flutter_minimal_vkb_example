@@ -93,15 +93,17 @@ class MyVirtualKeyboardState extends State<MyVirtualKeyboard> {
           visible: visible,
           child: FocusScope(
             canRequestFocus: false,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                for (final String key in <String>['A', 'B', 'C'])
-                  ElevatedButton(
-                    child: Text(key),
-                    onPressed: () => _handleKeyPress(key),
-                  ),
-              ],
+            child: TextFieldTapRegion(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  for (final String key in <String>['A', 'B', 'C'])
+                    ElevatedButton(
+                      child: Text(key),
+                      onPressed: () => _handleKeyPress(key),
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -110,7 +112,7 @@ class MyVirtualKeyboardState extends State<MyVirtualKeyboard> {
   }
 }
 
-class MyTextInputControl extends TextInputControl {
+class MyTextInputControl with TextInputControl {
   TextEditingValue _editingState = const TextEditingValue();
   final ValueNotifier<bool> _visible = ValueNotifier<bool>(false);
 
